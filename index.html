@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulator Kesehatan - BMI & Kalori</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        health: '#10b981',
+                        primary: '#3b82f6',
+                        secondary: '#8b5cf6',
+                        accent: '#ec4899',
+                        dark: '#0f172a'
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s linear infinite',
+                        'bounce-slow': 'bounce 3s infinite'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #f0fdf4, #ecfeff);
+            color: #0f172a;
+        }
+        
+        .card {
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .result-card {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .bmi-progress {
+            height: 12px;
+            border-radius: 6px;
+            background: linear-gradient(to right, 
+                #3b82f6 0%, 
+                #3b82f6 18%, 
+                #10b981 18%, 
+                #10b981 50%, 
+                #f59e0b 50%, 
+                #f59e0b 85%, 
+                #ef4444 85%, 
+                #ef4444 100%);
+        }
+        
+        .progress-indicator {
+            position: absolute;
+            top: -5px;
+            transform: translateX(-50%);
+            transition: left 1s ease-in-out;
+        }
+        
+        .tab-active {
+            border-bottom: 3px solid #10b981;
+            color: #10b981;
+            font-weight: 600;
+        }
+        
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 200px;
+            background-color: #0f172a;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.875rem;
+        }
+        
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-health to-primary text-white py-6 shadow-md">
+        <div class="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center">
+            <div class="flex items-center mb-4 md:mb-0">
+                <i class="fas fa-heartbeat text-3xl mr-3"></i>
+                <h1 class="text-2xl md:text-3xl font-bold">Kalkulator Kesehatan</h1>
+            </div>
+            <nav>
+                <ul class="flex space-x-6">
+                    <li><a href="#" class="hover:text-green-200 transition">Beranda</a></li>
+                    <li><a href="#" class="hover:text-green-200 transition">Tentang</a></li>
+                    <li><a href="#" class="hover:text-green-200 transition">Artikel</a></li>
+                    <li><a href="#" class="hover:text-green-200 transition">Kontak</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="py-12 bg-white">
+        <div class="container mx-auto px-4 text-center">
+            <h2 class="text-3xl md:text-4xl font-bold mb-4">Kelola Kesehatan Anda dengan Lebih Baik</h2>
+            <p class="text-lg text-gray-600 max-w-2xl mx-auto mb-8">
+                Hitung Indeks Massa Tubuh (BMI) dan kebutuhan kalori harian Anda untuk menjaga kesehatan dan mencapai berat badan ideal
+            </p>
+            <div class="bg-health/10 rounded-lg p-6 max-w-3xl mx-auto">
+                <div class="flex justify-center space-x-4 mb-6">
+                    <button id="bmi-tab" class="tab-active px-4 py-2 font-medium">Kalkulator BMI</button>
+                    <button id="calorie-tab" class="px-4 py-2 font-medium text-gray-600">Kalkulator Kalori</button>
+                </div>
+                
+                <!-- BMI Calculator -->
+                <div id="bmi-calculator">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-gray-700 mb-2">Jenis Kelamin</label>
+                            <div class="flex space-x-4">
+                                <label class="inline-flex items-center">
+                                    <input type="radio" name="gender" value="male" class="text-health" checked>
+                                    <span class="ml-2">Laki-laki</span>
+                                </label>
+                                <label class="inline-flex items-center">
+                                    <input type="radio" name="gender" value="female" class="text-health">
+                                    <span class="ml-2">Perempuan</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Usia (tahun)</label>
+                            <input type="number" id="age" min="1" max="120" value="25" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-health focus:border-transparent">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Tinggi Badan (cm)</label>
+                            <input type="number" id="height" min="50" max="250" value="170" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-health focus:border-transparent">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Berat Badan (kg)</label>
+                            <input type="number" id="weight" min="10" max="300" value="70" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-health focus:border-transparent">
+                        </div>
+                    </div>
+                    
+                    <button id="calculate-bmi" class="mt-6 bg-gradient-to-r from-health to-primary text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition w-full">
+                        Hitung BMI
+                    </button>
+                </div>
+                
+                <!-- Calorie Calculator (hidden by default) -->
+                <div id="calorie-calculator" class="hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-gray-700 mb-2">Jenis Kelamin</label>
+                            <div class="flex space-x-4">
+                                <label class="inline-flex items-center">
+                                    <input type="radio" name="cal-gender" value="male" class="text-health" checked>
+                                    <span class="ml-2">Laki-laki</span>
+                                </label>
+                                <label class="inline-flex items-center">
+                                    <input type="radio" name="cal-gender" value="female" class="text-health">
+                                    <span class="ml-2">Perempuan</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Usia (tahun)</label>
+                            <input type="number" id="cal-age" min="1" max="120" value="30" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-health focus:border-transparent">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Tinggi Badan (cm)</label>
+                            <input type="number" id="cal-height" min="50" max="250" value="165" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-health focus:border-transparent">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Berat Badan (kg)</label>
+                            <input type="number" id="cal-weight" min="10" max="300" value="60" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-health focus:border-transparent">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Aktivitas Fisik</label>
+                            <select id="activity" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-health focus:border-transparent">
+                                <option value="1.2">Sedentary (minim aktivitas)</option>
+                                <option value="1.375">Ringan (olahraga 1-3 hari/minggu)</option>
+                                <option value="1.55" selected>Moderat (olahraga 3-5 hari/minggu)</option>
+                                <option value="1.725">Aktif (olahraga 6-7 hari/minggu)</option>
+                                <option value="1.9">Sangat Aktif (olahraga berat setiap hari)</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Tujuan</label>
+                            <select id="goal" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-health focus:border-transparent">
+                                <option value="loss">Penurunan Berat Badan</option>
+                                <option value="maintain" selected>Mempertahankan Berat Badan</option>
+                                <option value="gain">Penambahan Berat Badan</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <button id="calculate-calories" class="mt-6 bg-gradient-to-r from-secondary to-accent text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition w-full">
+                        Hitung Kebutuhan Kalori
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Results Section -->
+    <section class="py-12 bg-gray-50">
+        <div class="container mx-auto px-4">
+            <div id="bmi-result" class="max-w-3xl mx-auto hidden">
+                <div class="bg-white rounded-xl shadow-md p-6 mb-8 card result-card">
+                    <h3 class="text-xl font-bold mb-4">Hasil Perhitungan BMI</h3>
+                    <div class="flex flex-col md:flex-row items-center">
+                        <div class="w-full md:w-1/3 mb-6 md:mb-0 text-center">
+                            <div class="text-5xl font-bold text-health mb-2" id="bmi-value">22.5</div>
+                            <div class="text-lg font-semibold" id="bmi-category">Normal</div>
+                        </div>
+                        <div class="w-full md:w-2/3">
+                            <div class="relative mb-4">
+                                <div class="bmi-progress w-full"></div>
+                                <div id="bmi-indicator" class="progress-indicator text-health">
+                                    <i class="fas fa-caret-down text-2xl"></i>
+                                </div>
+                            </div>
+                            <div class="flex justify-between text-xs text-gray-600">
+                                <span>Kurus</span>
+                                <span>Normal</span>
+                                <span>Gemuk</span>
+                                <span>Obesitas</span>
+                            </div>
+                            <div class="mt-4 text-sm text-gray-600">
+                                <p><span class="font-semibold">Rentang BMI normal:</span> 18.5 - 24.9</p>
+                                <p><span class="font-semibold">BMI Anda:</span> <span id="bmi-result-value">22.5</span> (<span id="bmi-result-category">Normal</span>)</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-xl shadow-md p-6 card">
+                        <h3 class="text-xl font-bold mb-4 flex items-center">
+                            <i class="fas fa-utensils text-health mr-2"></i> Rekomendasi Diet
+                        </h3>
+                        <ul class="space-y-2">
+                            <li class="flex items-start">
+                                <i class="fas fa-check-circle text-green-500 mt-1 mr-2"></i>
+                                <span>Konsumsi lebih banyak sayuran dan buah-buahan segar</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check-circle text-green-500 mt-1 mr-2"></i>
+                                <span>Pilih sumber protein rendah lemak seperti ikan, ayam tanpa kulit, dan kacang-kacangan</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check-circle text-green-500 mt-1 mr-2"></i>
+                                <span>Batasi konsumsi gula dan makanan olahan</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check-circle text-green-500 mt-1 mr-2"></i>
+                                <span>Minum air putih minimal 8 gelas per hari</span>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-md p-6 card">
+                        <h3 class="text-xl font-bold mb-4 flex items-center">
+                            <i class="fas fa-running text-health mr-2"></i> Rekomendasi Olahraga
+                        </h3>
+                        <ul class="space-y-2">
+                            <li class="flex items-start">
+                                <i class="fas fa-check-circle text-green-500 mt-1 mr-2"></i>
+                                <span>Lakukan aktivitas aerobik 150 menit per minggu (jalan cepat, bersepeda, berenang)</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check-circle text-green-500 mt-1 mr-2"></i>
+                                <span>Latihan kekuatan 2 kali per minggu</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check-circle text-green-500 mt-1 mr-2"></i>
+                                <span>Tambahkan aktivitas fisik dalam rutinitas harian (naik tangga, jalan kaki)</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check-circle text-green-500 mt-1 mr-2"></i>
+                                <span>Lakukan peregangan setiap hari untuk meningkatkan fleksibilitas</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="calorie-result" class="max-w-3xl mx-auto hidden">
+                <div class="bg-white rounded-xl shadow-md p-6 mb-8 card result-card">
+                    <h3 class="text-xl font-bold mb-4">Hasil Perhitungan Kebutuhan Kalori</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div class="bg-green-50 rounded-lg p-4 text-center">
+                            <div class="text-3xl font-bold text-health" id="bmr-value">1,500</div>
+                            <div class="text-gray-600">Kalori Basal (BMR)</div>
+                        </div>
+                        <div class="bg-blue-50 rounded-lg p-4 text-center">
+                            <div class="text-3xl font-bold text-primary" id="tdee-value">1,800</div>
+                            <div class="text-gray-600">Kalori Harian (TDEE)</div>
+                        </div>
+                        <div class="bg-purple-50 rounded-lg p-4 text-center">
+                            <div class="text-3xl font-bold text-secondary" id="goal-value">1,650</div>
+                            <div class="text-gray-600">Target Kalori</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h4 class="font-bold mb-2">Penjelasan:</h4>
+                        <ul class="space-y-2 text-sm text-gray-600">
+                            <li><span class="font-semibold">BMR (Basal Metabolic Rate):</span> Jumlah kalori minimal yang dibutuhkan tubuh untuk fungsi dasar saat istirahat.</li>
+                            <li><span class="font-semibold">TDEE (Total Daily Energy Expenditure):</span> Total kalori yang dibakar dalam sehari termasuk aktivitas fisik.</li>
+                            <li><span class="font-semibold">Target Kalori:</span> Rekomendasi asupan kalori harian untuk mencapai tujuan Anda.</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                        <p class="text-sm text-gray-700">
+                            <i class="fas fa-info-circle text-yellow-500 mr-2"></i>
+                            Untuk menurunkan berat badan, kurangi 300-500 kalori dari kebutuhan harian Anda. Untuk menambah berat badan, tambahkan 300-500 kalori.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-xl shadow-md p-6 card">
+                        <h3 class="text-xl font-bold mb-4 flex items-center">
+                            <i class="fas fa-apple-alt text-health mr-2"></i> Contoh Menu Makanan
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <div class="font-semibold">Sarapan (~400 kal)</div>
+                                <p class="text-sm text-gray-600">Oatmeal dengan buah beri dan kacang almond</p>
+                            </div>
+                            <div>
+                                <div class="font-semibold">Makan Siang (~500 kal)</div>
+                                <p class="text-sm text-gray-600">Salad dengan dada ayam panggang, sayuran, dan minyak zaitun</p>
+                            </div>
+                            <div>
+                                <div class="font-semibold">Makan Malam (~500 kal)</div>
+                                <p class="text-sm text-gray-600">Ikan salmon panggang dengan brokoli dan ubi jalar</p>
+                            </div>
+                            <div>
+                                <div class="font-semibold">Cemilan (~200 kal)</div>
+                                <p class="text-sm text-gray-600">Yoghurt Yunani dengan buah</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-md p-6 card">
+                        <h3 class="text-xl font-bold mb-4 flex items-center">
+                            <i class="fas fa-fire text-health mr-2"></i> Tips Membakar Kalori
+                        </h3>
+                        <ul class="space-y-3">
+                            <li class="flex items-start">
+                                <i class="fas fa-walking text-green-500 mt-1 mr-2"></i>
+                                <span><span class="font-semibold">Jalan cepat 30 menit:</span> ~150 kalori</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-bicycle text-green-500 mt-1 mr-2"></i>
+                                <span><span class="font-semibold">Bersepeda 30 menit:</span> ~250 kalori</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-swimmer text-green-500 mt-1 mr-2"></i>
+                                <span><span class="font-semibold">Berenang 30 menit:</span> ~200 kalori</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-dumbbell text-green-500 mt-1 mr-2"></i>
+                                <span><span class="font-semibold">Angkat beban 30 menit:</span> ~100 kalori</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Health Tips -->
+    <section class="py-12 bg-white">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl font-bold text-center mb-12">Tips Kesehatan & Nutrisi</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-green-50 rounded-xl p-6 card">
+                    <div class="text-green-500 text-4xl mb-4">
+                        <i class="fas fa-glass-water"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Hidrasi yang Cukup</h3>
+                    <p class="text-gray-600 mb-4">Minum air putih yang cukup membantu metabolisme tubuh, meningkatkan energi, dan menjaga kesehatan kulit.</p>
+                    <div class="text-sm text-gray-500">
+                        <i class="fas fa-lightbulb mr-2"></i> Minum 8-10 gelas air per hari
+                    </div>
+                </div>
+                
+                <div class="bg-blue-50 rounded-xl p-6 card">
+                    <div class="text-blue-500 text-4xl mb-4">
+                        <i class="fas fa-utensils"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Pola Makan Seimbang</h3>
+                    <p class="text-gray-600 mb-4">Konsumsi berbagai jenis makanan bergizi untuk memenuhi kebutuhan vitamin, mineral, dan nutrisi penting.</p>
+                    <div class="text-sm text-gray-500">
+                        <i class="fas fa-lightbulb mr-2"></i> Fokus pada sayuran, buah, protein tanpa lemak, dan biji-bijian
+                    </div>
+                </div>
+                
+                <div class="bg-purple-50 rounded-xl p-6 card">
+                    <div class="text-purple-500 text-4xl mb-4">
+                        <i class="fas fa-moon"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Istirahat yang Cukup</h3>
+                    <p class="text-gray-600 mb-4">Tidur yang cukup membantu pemulihan tubuh, meningkatkan fungsi otak, dan mengatur hormon nafsu makan.</p>
+                    <div class="text-sm text-gray-500">
+                        <i class="fas fa-lightbulb mr-2"></i> Targetkan 7-9 jam tidur per malam
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gradient-to-r from-dark to-gray-900 text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <h3 class="text-xl font-bold mb-4 flex items-center">
+                        <i class="fas fa-heartbeat mr-2"></i> Kalkulator Kesehatan
+                    </h3>
+                    <p class="text-gray-300">
+                        Alat bantu untuk memantau kesehatan dan mencapai gaya hidup yang lebih seimbang.
+                    </p>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Navigasi</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-300 hover:text-white transition">Beranda</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition">Kalkulator BMI</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition">Kalkulator Kalori</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition">Artikel Kesehatan</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Sumber</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-300 hover:text-white transition">WHO - BMI Guidelines</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition">Kementerian Kesehatan RI</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition">Asosiasi Diet Indonesia</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition">Referensi Gizi</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Tetap Terhubung</h4>
+                    <div class="flex space-x-4 mb-4">
+                        <a href="#" class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-health transition">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-health transition">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-health transition">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-health transition">
+                            <i class="fab fa-youtube"></i>
+                        </a>
+                    </div>
+                    <p class="text-gray-300 text-sm">
+                        Berlangganan newsletter untuk tips kesehatan mingguan:
+                    </p>
+                    <div class="mt-2 flex">
+                        <input type="email" placeholder="Email Anda" class="px-3 py-2 bg-gray-800 rounded-l-lg w-full focus:outline-none">
+                        <button class="bg-health px-4 py-2 rounded-r-lg">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-800 mt-10 pt-6 text-center text-gray-400 text-sm">
+                <p>&copy; 2023 Kalkulator Kesehatan. Hak Cipta Dilindungi. | Dibuat dengan <i class="fas fa-heart text-red-500"></i> untuk kesehatan Anda</p>
+                <p class="mt-2">Disclaimer: Kalkulator ini memberikan estimasi dan tidak menggantikan saran medis profesional.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Tab switching
+            const bmiTab = document.getElementById('bmi-tab');
+            const calorieTab = document.getElementById('calorie-tab');
+            const bmiCalculator = document.getElementById('bmi-calculator');
+            const calorieCalculator = document.getElementById('calorie-calculator');
+            const bmiResult = document.getElementById('bmi-result');
+            const calorieResult = document.getElementById('calorie-result');
+            
+            bmiTab.addEventListener('click', function() {
+                bmiTab.classList.add('tab-active');
+                calorieTab.classList.remove('tab-active');
+                bmiCalculator.classList.remove('hidden');
+                calorieCalculator.classList.add('hidden');
+                bmiResult.classList.add('hidden');
+                calorieResult.classList.add('hidden');
+            });
+            
+            calorieTab.addEventListener('click', function() {
+                calorieTab.classList.add('tab-active');
+                bmiTab.classList.remove('tab-active');
+                calorieCalculator.classList.remove('hidden');
+                bmiCalculator.classList.add('hidden');
+                calorieResult.classList.add('hidden');
+                bmiResult.classList.add('hidden');
+            });
+            
+            // BMI Calculation
+            const calculateBmiBtn = document.getElementById('calculate-bmi');
+            calculateBmiBtn.addEventListener('click', calculateBMI);
+            
+            function calculateBMI() {
+                const weight = parseFloat(document.getElementById('weight').value);
+                const height = parseFloat(document.getElementById('height').value) / 100; // Convert to meters
+                
+                if (isNaN(weight) || isNaN(height) || height === 0) {
+                    alert('Masukkan berat dan tinggi yang valid');
+                    return;
+                }
+                
+                const bmi = weight / (height * height);
+                const bmiValue = document.getElementById('bmi-value');
+                const bmiCategory = document.getElementById('bmi-category');
+                const bmiResultValue = document.getElementById('bmi-result-value');
+                const bmiResultCategory = document.getElementById('bmi-result-category');
+                const bmiIndicator = document.getElementById('bmi-indicator');
+                
+                // Format BMI to 1 decimal place
+                const formattedBMI = bmi.toFixed(1);
+                bmiValue.textContent = formattedBMI;
+                bmiResultValue.textContent = formattedBMI;
+                
+                // Determine BMI category
+                let category, categoryText, indicatorPosition;
+                if (bmi < 18.5) {
+                    category = 'Underweight';
+                    categoryText = 'Kurus';
+                    indicatorPosition = 9; // 9% of the progress bar
+                } else if (bmi >= 18.5 && bmi < 25) {
+                    category = 'Normal';
+                    categoryText = 'Normal';
+                    indicatorPosition = 34; // 34% of the progress bar
+                } else if (bmi >= 25 && bmi < 30) {
+                    category = 'Overweight';
+                    categoryText = 'Gemuk';
+                    indicatorPosition = 67.5; // 67.5% of the progress bar
+                } else {
+                    category = 'Obese';
+                    categoryText = 'Obesitas';
+                    indicatorPosition = 92.5; // 92.5% of the progress bar
+                }
+                
+                bmiCategory.textContent = categoryText;
+                bmiResultCategory.textContent = categoryText;
+                
+                // Update indicator position
+                bmiIndicator.style.left = `${indicatorPosition}%`;
+                
+                // Show result
+                bmiResult.classList.remove('hidden');
+                
+                // Scroll to result
+                bmiResult.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            // Calorie Calculation
+            const calculateCaloriesBtn = document.getElementById('calculate-calories');
+            calculateCaloriesBtn.addEventListener('click', calculateCalories);
+            
+            function calculateCalories() {
+                const age = parseInt(document.getElementById('cal-age').value);
+                const height = parseFloat(document.getElementById('cal-height').value);
+                const weight = parseFloat(document.getElementById('cal-weight').value);
+                const gender = document.querySelector('input[name="cal-gender"]:checked').value;
+                const activityFactor = parseFloat(document.getElementById('activity').value);
+                const goal = document.getElementById('goal').value;
+                
+                if (isNaN(age) || isNaN(height) || isNaN(weight)) {
+                    alert('Masukkan usia, tinggi, dan berat yang valid');
+                    return;
+                }
+                
+                // Calculate BMR using Mifflin-St Jeor Equation
+                let bmr;
+                if (gender === 'male') {
+                    bmr = (10 * weight) + (6.25 * height) - (5 * age) + 5;
+                } else {
+                    bmr = (10 * weight) + (6.25 * height) - (5 * age) - 161;
+                }
+                
+                // Calculate TDEE
+                const tdee = bmr * activityFactor;
+                
+                // Adjust based on goal
+                let goalCalories;
+                if (goal === 'loss') {
+                    goalCalories = tdee - 500;
+                } else if (goal === 'gain') {
+                    goalCalories = tdee + 500;
+                } else {
+                    goalCalories = tdee;
+                }
+                
+                // Update UI
+                document.getElementById('bmr-value').textContent = Math.round(bmr).toLocaleString();
+                document.getElementById('tdee-value').textContent = Math.round(tdee).toLocaleString();
+                document.getElementById('goal-value').textContent = Math.round(goalCalories).toLocaleString();
+                
+                // Show result
+                calorieResult.classList.remove('hidden');
+                
+                // Scroll to result
+                calorieResult.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            // Initialize with BMI calculation
+            calculateBMI();
+        });
+    </script>
+</body>
+</html>
